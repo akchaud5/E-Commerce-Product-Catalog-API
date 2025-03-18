@@ -1,10 +1,10 @@
 import os
-from pydantic import BaseSettings
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "E-Commerce Product Catalog API"
     
@@ -15,8 +15,9 @@ class Settings(BaseSettings):
     
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "dev")
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True
+    }
 
 settings = Settings()
