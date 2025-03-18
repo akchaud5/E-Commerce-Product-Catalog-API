@@ -15,14 +15,26 @@ try:
     logging.info("Successfully connected to MongoDB")
 except Exception as e:
     logging.error(f"MongoDB connection error: {e}")
-    raise
+    # Don't raise an exception, allow the app to start with degraded functionality
+    # This is especially useful for deployment environments where MongoDB might not be available immediately
+    client = None
 
-database = client.get_database()
+# Only get database if client connection succeeded
+if client:
+    database = client.get_database()
+    
+    # Collections
+    products_collection = database.products
+    categories_collection = database.categories
+    users_collection = database.users
+else:
+    # Define placeholders that will cause more specific errors if accessed
+    database = None
+    products_collection = None
+    categories_collection = None
+    users_collection = None
 
 async def get_collection(collection_name: str):
+    if database is None:
+        raise ConnectionError("MongoDB connection not available")
     return database[collection_name]
-
-# Collections
-products_collection = database.products
-categories_collection = database.categories
-users_collection = database.users

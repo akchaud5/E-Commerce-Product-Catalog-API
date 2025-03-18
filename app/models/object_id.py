@@ -46,4 +46,5 @@ class PydanticObjectId(ObjectId):
         return handler(core_schema.string_schema())
 
 
-PyObjectId = Annotated[PydanticObjectId, pydantic.json_schema.with_json_schema({"type": "string", "format": "objectid"})]
+# Use the proper case for WithJsonSchema in Pydantic v2
+PyObjectId = Annotated[PydanticObjectId, pydantic.json_schema.WithJsonSchema({"type": "string", "format": "objectid"})]
