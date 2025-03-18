@@ -29,7 +29,7 @@ class PydanticObjectId(ObjectId):
             core_schema.is_instance_schema(ObjectId),
             # Handle strings and validate them as ObjectId format
             core_schema.chain_schema([
-                core_schema.string_schema(),
+                core_schema.str_schema(),
                 core_schema.no_info_plain_validator_function(validate_object_id),
             ]),
         ], serialization=core_schema.plain_serializer_function_ser_schema(
@@ -43,7 +43,7 @@ class PydanticObjectId(ObjectId):
         handler: GetJsonSchemaHandler
     ) -> dict[str, Any]:
         """Generate JSON schema for ObjectId."""
-        return handler(core_schema.string_schema())
+        return handler(core_schema.str_schema())
 
 
 # Use the proper case for WithJsonSchema in Pydantic v2
