@@ -36,11 +36,21 @@ async def setup_test_db():
     """
     # Use a test database with a different name
     test_db_name = "ecommerce_test"
-    test_mongodb_url = f"{settings.MONGODB_URL.rsplit('/', 1)[0]}/{test_db_name}"
     
-    # Connect to test database
-    client = AsyncIOMotorClient(test_mongodb_url)
-    test_db = client[test_db_name]
+    # Handle different MongoDB URL formats (standard or Atlas)
+    if settings.MONGODB_URL.startswith('mongodb+srv://'):
+        # For Atlas URLs, directly use the client with database name
+        client = AsyncIOMotorClient(settings.MONGODB_URL)
+        test_db = client[test_db_name]
+    else:
+        # For standard URLs, try to split off any existing database name
+        # and append our test database name
+        base_url = settings.MONGODB_URL
+        if '/' in base_url[10:]:  # Skip the mongodb:// prefix
+            base_url = settings.MONGODB_URL.rsplit('/', 1)[0]
+        test_mongodb_url = f"{base_url}/{test_db_name}"
+        client = AsyncIOMotorClient(test_mongodb_url)
+        test_db = client[test_db_name]
     
     # Save original database
     original_database = database

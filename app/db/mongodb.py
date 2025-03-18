@@ -21,8 +21,19 @@ except Exception as e:
 
 # Only get database if client connection succeeded
 if client:
-    # For MongoDB Atlas URLs that don't specify a database, use a fixed name
-    database = client["ecommerce"]
+    # Extract database name from MONGODB_URL if present, otherwise use default
+    db_name = "ecommerce"
+    
+    # Handle both standard and Atlas connection strings
+    if mongo_url.startswith('mongodb://') and '/' in mongo_url[10:]:
+        parts = mongo_url.split('/')
+        if len(parts) > 3 and parts[3]:
+            potential_db = parts[3].split('?')[0]  # Remove query parameters if any
+            if potential_db:
+                db_name = potential_db
+                
+    # For MongoDB Atlas URLs, use the fixed database name
+    database = client[db_name]
     
     # Collections
     products_collection = database.products
