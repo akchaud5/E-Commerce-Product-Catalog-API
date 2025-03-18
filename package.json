@@ -1,0 +1,22 @@
+{
+  "name": "e-commerce-api",
+  "version": "1.0.0",
+  "description": "E-Commerce Product Catalog API built with FastAPI and MongoDB",
+  "main": "index.js",
+  "scripts": {
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "dev": "uvicorn app.main:app --reload",
+    "test": "pytest",
+    "test:unit": "pytest tests/unit/",
+    "test:integration": "pytest tests/integration/",
+    "test:coverage": "pytest --cov=app",
+    "lint": "flake8 app tests"
+  },
+  "keywords": ["fastapi", "mongodb", "python", "api", "e-commerce"],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/e-commerce-api.git"
+  }
+}
