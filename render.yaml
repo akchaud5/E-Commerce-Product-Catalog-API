@@ -17,7 +17,5 @@ services:
       - key: MONGODB_URL
         sync: false
 
-databases:
-  - name: e-commerce-mongodb
-    databaseName: ecommerce
-    plan: free
+# MongoDB is externally provided through Atlas
+# No need for a Render database definition
