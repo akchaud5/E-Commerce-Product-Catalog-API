@@ -144,7 +144,18 @@ pytest --cov=app
 
 ### Render Deployment
 
-This application is deployable on Render. Follow these steps:
+This application is ready for deployment on Render using the included `render.yaml` configuration.
+
+#### Option 1: One-click deployment
+
+1. Fork this repository to your GitHub account
+2. Visit the Render Dashboard: https://dashboard.render.com/
+3. Click "New" and select "Blueprint" from the dropdown
+4. Connect your GitHub account and select your forked repository
+5. Click "Apply Blueprint"
+6. Render will automatically set up the services defined in `render.yaml`
+
+#### Option 2: Manual configuration
 
 1. Push the code to a GitHub repository
 2. Connect your Render account to GitHub
@@ -155,7 +166,9 @@ This application is deployable on Render. Follow these steps:
    - `ALGORITHM`: HS256
    - `ACCESS_TOKEN_EXPIRE_MINUTES`: 30
    - `ENVIRONMENT`: prod
-5. Deploy!
+5. Configure the build command: `pip install -r requirements.txt`
+6. Configure the start command: `gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT`
+7. Deploy!
 
 ### Other Cloud Platforms
 
