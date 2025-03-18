@@ -3,13 +3,16 @@ services:
   - type: web
     name: e-commerce-api
     env: python
+    plan: free
+    region: ohio
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 30
+        value: "30"
       - key: ENVIRONMENT
         value: prod
       - key: SECRET_KEY
@@ -21,7 +24,8 @@ services:
 
 databases:
   # MongoDB database
-  - name: e-commerce-mongodb
+  - type: mongodb
+    name: e-commerce-mongodb
     plan: free
-    databaseName: ecommerce
-    ipAllowList: [] # allow all IPs during development, restrict for production
+    region: ohio
+    ipAllowList: []
