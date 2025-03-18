@@ -27,7 +27,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest==7.4.4 pytest-cov==6.0.0 pytest-asyncio==0.21.1
+        pip install pytest==7.4.4 pytest-cov==6.0.0 pytest-asyncio==0.21.1 uvloop
         
     - name: Lint with flake8
       run: |
@@ -42,17 +42,33 @@ jobs:
         echo "import os
         import sys
         import pytest
+        import asyncio
 
         # Run individual tests in separate processes to avoid event loop issues
         def run_tests():
-            test_dirs = ['tests/unit', 'tests/integration']
-            exit_code = 0
+            # Set event loop policy to use a more robust implementation
+            if sys.platform != 'win32':
+                try:
+                    import uvloop
+                    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+                except ImportError:
+                    pass
             
-            # Run all tests with code coverage
-            result = pytest.main(['--cov=app', '--cov-report=xml'])
-            if result != 0:
-                exit_code = result
-                
+            # Force a new event loop
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            
+            # Run unit tests first, then integration tests
+            exit_code = 0
+            for test_dir in ['tests/unit', 'tests/integration']:
+                print(f'\\nRunning tests in {test_dir}...')
+                # Run with -v for more verbose output to debug issues
+                result = pytest.main(['-xvs', test_dir, '--cov=app', '--cov-append'])
+                if result != 0:
+                    exit_code = result
+            
+            # Generate coverage report
+            pytest.main(['--cov-report=xml'])
+            
             return exit_code
             
         if __name__ == '__main__':

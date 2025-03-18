@@ -40,10 +40,18 @@ async def add_process_time_header(request: Request, call_next):
     Add process time header to response.
     """
     start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+    except Exception as e:
+        logging.error(f"Error processing request: {e}")
+        # Return a generic error response to avoid middleware failures
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error occurred"}
+        )
 
 @app.get("/", include_in_schema=False)
 async def root():
