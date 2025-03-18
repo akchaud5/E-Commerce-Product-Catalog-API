@@ -65,6 +65,23 @@ async def initialize_db():
     """
     Initialize the database with sample data on startup
     """
+    # Log MongoDB connection URL (with password hidden for security)
+    mongo_url = settings.MONGODB_URL
+    if mongo_url and "://" in mongo_url:
+        parts = mongo_url.split("://")
+        if len(parts) > 1 and "@" in parts[1]:
+            # Hide password in logs
+            user_pass, rest = parts[1].split("@", 1)
+            if ":" in user_pass:
+                user, _ = user_pass.split(":", 1)
+                logging.info(f"MongoDB URL scheme: {parts[0]}://{user}:******@{rest}")
+            else:
+                logging.info(f"MongoDB URL scheme: {parts[0]}://{user_pass}@{rest}")
+        else:
+            logging.info(f"MongoDB URL scheme: {parts[0]}://...")
+    else:
+        logging.warning(f"MongoDB URL may be invalid: {mongo_url[:10]}...")
+    
     if settings.ENVIRONMENT == "dev":
         try:
             from app.db.init_db import init_db
