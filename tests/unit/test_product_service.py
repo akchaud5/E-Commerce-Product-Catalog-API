@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 from bson import ObjectId
 from datetime import datetime
 
@@ -8,7 +9,7 @@ from app.services import product_service, category_service
 from app.db.mongodb import database
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def sample_category():
     """
     Create a sample category for testing.
