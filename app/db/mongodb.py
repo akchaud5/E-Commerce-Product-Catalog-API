@@ -21,9 +21,8 @@ except Exception as e:
 
 # Only get database if client connection succeeded
 if client:
-    # Explicitly use the database name from settings or fallback to "ecommerce"
-    db_name = mongo_url.split("/")[-1] if "/" in mongo_url else "ecommerce"
-    database = client[db_name]
+    # For MongoDB Atlas URLs that don't specify a database, use a fixed name
+    database = client["ecommerce"]
     
     # Collections
     products_collection = database.products
