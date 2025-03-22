@@ -5,57 +5,35 @@ from app.db.mongodb import get_categories_collection
 from app.models.category import CategoryInDB, CategoryCreate, CategoryUpdate
 
 async def create_category(category: CategoryCreate) -> CategoryInDB:
-    print(f"create_category called with: {category}")
-    
     # Create the database model object
     category_in_db = CategoryInDB(**category.model_dump())
-    print(f"CategoryInDB created: {category_in_db}")
     
     # Convert to dict for MongoDB
     category_dict = category_in_db.model_dump(by_alias=True)
-    print(f"Dict for MongoDB: {category_dict}")
     
     # Get collection and insert
     collection = await get_categories_collection()
     new_category = await collection.insert_one(category_dict)
-    print(f"Inserted with ID: {new_category.inserted_id}")
     
     # Retrieve the inserted document
     created_category = await collection.find_one({"_id": new_category.inserted_id})
-    print(f"Retrieved from DB: {created_category}")
     
     # Create and return the model object
-    result = CategoryInDB(**created_category)
-    print(f"Returning CategoryInDB: {result}")
-    return result
+    return CategoryInDB(**created_category)
 
 async def get_category_by_id(category_id: str) -> Optional[CategoryInDB]:
-    print(f"get_category_by_id called with: {category_id}, type: {type(category_id)}")
-    
     if not ObjectId.is_valid(category_id):
-        print(f"Invalid ObjectId: {category_id}")
         return None
     
     try:
         obj_id = ObjectId(category_id)
-        print(f"Converted to ObjectId: {obj_id}")
-        
         collection = await get_categories_collection()
-        print(f"Got collection: {collection}")
-        
-        # First check if we can find anything in the collection
-        count = await collection.count_documents({})
-        print(f"Total documents in collection: {count}")
-        
-        # Try to find the document
         category_data = await collection.find_one({"_id": obj_id})
-        print(f"Found category data: {category_data}")
         
         if category_data:
             return CategoryInDB(**category_data)
         return None
-    except Exception as e:
-        print(f"Error in get_category_by_id: {e}")
+    except Exception:
         return None
 
 async def get_category_by_name(name: str) -> Optional[CategoryInDB]:
