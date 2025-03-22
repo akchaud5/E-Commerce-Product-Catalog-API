@@ -4,7 +4,7 @@ from datetime import datetime
 
 from app.models.category import CategoryCreate, CategoryUpdate
 from app.services import category_service
-from app.db.mongodb import database
+from app.db.mongodb import get_categories_collection
 
 
 @pytest.mark.asyncio
@@ -16,7 +16,8 @@ async def test_create_category():
     )
     
     # First delete the category if it exists
-    await database.categories.delete_many({"name": category_data.name})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({"name": category_data.name})
     
     # Act
     category = await category_service.create_category(category_data)
@@ -39,7 +40,8 @@ async def test_get_category_by_id():
     )
     
     # First delete the category if it exists
-    await database.categories.delete_many({"name": category_data.name})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({"name": category_data.name})
     
     created_category = await category_service.create_category(category_data)
     
@@ -66,7 +68,8 @@ async def test_get_category_by_name():
     )
     
     # First delete the category if it exists
-    await database.categories.delete_many({"name": category_data.name})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({"name": category_data.name})
     
     created_category = await category_service.create_category(category_data)
     
@@ -92,7 +95,8 @@ async def test_update_category():
     )
     
     # First delete the category if it exists
-    await database.categories.delete_many({"name": category_data.name})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({"name": category_data.name})
     
     created_category = await category_service.create_category(category_data)
     
@@ -132,7 +136,8 @@ async def test_delete_category():
     )
     
     # First delete the category if it exists
-    await database.categories.delete_many({"name": category_data.name})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({"name": category_data.name})
     
     created_category = await category_service.create_category(category_data)
     
@@ -150,7 +155,8 @@ async def test_delete_category():
 @pytest.mark.asyncio
 async def test_get_all_categories():
     # Arrange - Clear existing categories
-    await database.categories.delete_many({})
+    categories_collection = await get_categories_collection()
+    await categories_collection.delete_many({})
     
     # Create multiple categories
     categories_data = [

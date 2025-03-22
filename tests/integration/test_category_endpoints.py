@@ -1,51 +1,48 @@
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 import json
 from app.main import app
 
 
 @pytest.fixture
-async def sample_category_id(admin_auth_headers):
+async def sample_category_id(admin_auth_headers, async_client):
     """
     Create a sample category and return its ID.
     """
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.post(
-            "/api/v1/categories/",
-            headers=admin_auth_headers,
-            json={
-                "name": "Test Integration Category",
-                "description": "A category for integration testing"
-            }
-        )
-        
-        data = response.json()
-        return data["id"]
+    response = await async_client.post(
+        "/api/v1/categories/",
+        headers=admin_auth_headers,
+        json={
+            "name": "Test Integration Category",
+            "description": "A category for integration testing"
+        }
+    )
+    
+    data = response.json()
+    return data["id"]
 
 
 @pytest.mark.asyncio
-async def test_create_category(admin_auth_headers):
-    # Arrange
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # Act
-        response = await client.post(
-            "/api/v1/categories/",
-            headers=admin_auth_headers,
-            json={
-                "name": "New Integration Category",
-                "description": "A new category created during integration testing"
-            }
-        )
-        
-        # Assert
-        assert response.status_code == 201
-        data = response.json()
-        assert data["name"] == "New Integration Category"
-        assert data["description"] == "A new category created during integration testing"
-        assert "id" in data
-        assert "created_at" in data
-        assert "updated_at" in data
+async def test_create_category(admin_auth_headers, async_client):
+    # Act
+    response = await async_client.post(
+        "/api/v1/categories/",
+        headers=admin_auth_headers,
+        json={
+            "name": "New Integration Category",
+            "description": "A new category created during integration testing"
+        }
+    )
+    
+    # Assert
+    assert response.status_code == 201
+    data = response.json()
+    assert data["name"] == "New Integration Category"
+    assert data["description"] == "A new category created during integration testing"
+    assert "id" in data
+    assert "created_at" in data
+    assert "updated_at" in data
 
 
 @pytest.mark.asyncio

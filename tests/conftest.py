@@ -3,15 +3,29 @@ import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi.testclient import TestClient
-from typing import Generator, Any
+from httpx import AsyncClient, ASGITransport
+from typing import Generator, Any, AsyncGenerator
 from bson import ObjectId
 import os
 
 from app.main import app
 from app.core.config import settings
-from app.db.mongodb import get_database, get_collection
+from app.db.mongodb import get_collection
 from app.services import user_service
 from app.models.user import UserCreate
+
+
+@pytest_asyncio.fixture
+async def async_client() -> AsyncGenerator[AsyncClient, None]:
+    """
+    Fixture that provides an async httpx client connected to the app.
+    This fixture uses ASGITransport explicitly to avoid the deprecation warning.
+    """
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
+        yield client
 
 
 @pytest.fixture(scope="session")
@@ -40,8 +54,6 @@ async def setup_test_db():
     """
     Create test database and collections, and clean up after tests.
     """
-    from app.db.mongodb import client, database, products_collection, categories_collection, users_collection
-    
     # Use a test database with a different name
     test_db_name = "ecommerce_test"
     
@@ -87,16 +99,6 @@ async def setup_test_db():
         if "categories" not in collections:
             await test_db.create_collection("categories")
         
-        # Save original values
-        original_client = client
-        original_database = database
-        original_products = products_collection
-        original_categories = categories_collection
-        original_users = users_collection
-        
-        # Replace with test values
-        from app.db.mongodb import client, database, products_collection, categories_collection, users_collection, get_client, get_database, get_products_collection, get_categories_collection, get_users_collection
-        
         # Monkey patch the get functions to return test values during tests
         async def get_test_client():
             return test_client
@@ -115,37 +117,55 @@ async def setup_test_db():
         
         # Patch the module
         import app.db.mongodb
+        
+        # Save the original functions
+        original_get_client = app.db.mongodb.get_client
+        original_get_database = app.db.mongodb.get_database
+        original_get_products_collection = app.db.mongodb.get_products_collection
+        original_get_categories_collection = app.db.mongodb.get_categories_collection
+        original_get_users_collection = app.db.mongodb.get_users_collection
+        
+        # Replace with test functions
         app.db.mongodb.get_client = get_test_client
         app.db.mongodb.get_database = get_test_database
         app.db.mongodb.get_products_collection = get_test_products_collection
         app.db.mongodb.get_categories_collection = get_test_categories_collection
         app.db.mongodb.get_users_collection = get_test_users_collection
         
-        # Set global variables
+        # Initialize the global variables for tests that directly use them
         app.db.mongodb.client = test_client
         app.db.mongodb.database = test_db
         app.db.mongodb.products_collection = test_db.products
         app.db.mongodb.categories_collection = test_db.categories
         app.db.mongodb.users_collection = test_db.users
         
+        # Set a reference to the db in app for integration tests
+        app.db = type('DB', (), {})()
+        app.db.mongodb = type('MongoDB', (), {})()
+        app.db.mongodb.get_client = get_test_client
+        app.db.mongodb.get_database = get_test_database
+        app.db.mongodb.get_products_collection = get_test_products_collection
+        app.db.mongodb.get_categories_collection = get_test_categories_collection
+        app.db.mongodb.get_users_collection = get_test_users_collection
+        app.db.mongodb.client = test_client
+        app.db.mongodb.database = test_db
+        
+        # Setup complete, yield control back to the tests
         yield
         
         # Clean up: drop test database
         await test_client.drop_database(test_db_name)
         
-        # Restore original values
-        app.db.mongodb.client = original_client
-        app.db.mongodb.database = original_database
-        app.db.mongodb.products_collection = original_products
-        app.db.mongodb.categories_collection = original_categories
-        app.db.mongodb.users_collection = original_users
-        
         # Restore original functions
-        app.db.mongodb.get_client = get_client
-        app.db.mongodb.get_database = get_database
-        app.db.mongodb.get_products_collection = get_products_collection
-        app.db.mongodb.get_categories_collection = get_categories_collection
-        app.db.mongodb.get_users_collection = get_users_collection
+        app.db.mongodb.get_client = original_get_client
+        app.db.mongodb.get_database = original_get_database
+        app.db.mongodb.get_products_collection = original_get_products_collection
+        app.db.mongodb.get_categories_collection = original_get_categories_collection
+        app.db.mongodb.get_users_collection = original_get_users_collection
+        
+        # Remove app.db
+        if hasattr(app, 'db'):
+            delattr(app, 'db')
         
     except Exception as e:
         pytest.skip(f"MongoDB connection failed: {e}")
@@ -166,7 +186,7 @@ async def sample_user():
     # Check if user already exists and delete it
     existing_user = await user_service.get_user_by_email(user_data.email)
     if existing_user:
-        users_collection = await app.db.mongodb.get_users_collection()
+        users_collection = await get_collection("users")
         await users_collection.delete_one({"_id": existing_user.id})
     
     user = await user_service.create_user(user_data)
@@ -187,13 +207,13 @@ async def admin_user():
     # Check if user already exists and delete it
     existing_user = await user_service.get_user_by_email(user_data.email)
     if existing_user:
-        users_collection = await app.db.mongodb.get_users_collection()
+        users_collection = await get_collection("users")
         await users_collection.delete_one({"_id": existing_user.id})
     
     user = await user_service.create_user(user_data)
     
     # Make user an admin
-    users_collection = await app.db.mongodb.get_users_collection()
+    users_collection = await get_collection("users")
     await users_collection.update_one(
         {"_id": user.id},
         {"$set": {"is_admin": True}}

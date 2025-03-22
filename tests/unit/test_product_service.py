@@ -6,7 +6,7 @@ from datetime import datetime
 from app.models.product import ProductCreate, ProductUpdate
 from app.models.category import CategoryCreate
 from app.services import product_service, category_service
-from app.db.mongodb import database
+from app.db.mongodb import get_categories_collection, get_products_collection
 
 
 @pytest_asyncio.fixture
@@ -22,7 +22,8 @@ async def sample_category():
     # Check if category already exists and delete it
     existing_category = await category_service.get_category_by_name(category_data.name)
     if existing_category:
-        await database.categories.delete_one({"_id": existing_category.id})
+        categories_collection = await get_categories_collection()
+        await categories_collection.delete_one({"_id": existing_category.id})
     
     category = await category_service.create_category(category_data)
     return category
@@ -140,7 +141,8 @@ async def test_delete_product(sample_category):
 @pytest.mark.asyncio
 async def test_get_all_products(sample_category):
     # Arrange - Clear existing products
-    await database.products.delete_many({})
+    products_collection = await get_products_collection()
+    await products_collection.delete_many({})
     
     # Create multiple products
     product_data1 = ProductCreate(
@@ -185,7 +187,8 @@ async def test_get_all_products(sample_category):
 @pytest.mark.asyncio
 async def test_search_products(sample_category):
     # Arrange - Clear existing products
-    await database.products.delete_many({})
+    products_collection = await get_products_collection()
+    await products_collection.delete_many({})
     
     # Create products with searchable terms
     product_data1 = ProductCreate(
@@ -233,7 +236,8 @@ async def test_search_products(sample_category):
 @pytest.mark.asyncio
 async def test_get_products_by_category(sample_category):
     # Arrange - Clear existing products
-    await database.products.delete_many({})
+    products_collection = await get_products_collection()
+    await products_collection.delete_many({})
     
     # Create multiple products in the same category
     for i in range(3):

@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 import json
 from app.main import app
 
@@ -8,7 +8,11 @@ from app.main import app
 @pytest.mark.asyncio
 async def test_register_user():
     # Arrange
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    # Use explicit transport to avoid deprecation warning
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
         # Act
         response = await client.post(
             "/api/v1/auth/register",

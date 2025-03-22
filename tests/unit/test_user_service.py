@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.models.user import UserCreate
 from app.services import user_service
-from app.db.mongodb import database
+from app.db.mongodb import get_users_collection
 
 
 @pytest.mark.asyncio
@@ -18,7 +18,8 @@ async def test_create_user():
     )
     
     # First delete the user if it exists
-    await database.users.delete_many({"email": user_data.email})
+    users_collection = await get_users_collection()
+    await users_collection.delete_many({"email": user_data.email})
     
     # Act
     user = await user_service.create_user(user_data)
@@ -45,7 +46,8 @@ async def test_get_user_by_email():
     )
     
     # First delete the user if it exists
-    await database.users.delete_many({"email": email})
+    users_collection = await get_users_collection()
+    await users_collection.delete_many({"email": email})
     
     created_user = await user_service.create_user(user_data)
     
@@ -72,7 +74,8 @@ async def test_get_user_by_username():
     )
     
     # First delete the user if it exists
-    await database.users.delete_many({"username": username})
+    users_collection = await get_users_collection()
+    await users_collection.delete_many({"username": username})
     
     created_user = await user_service.create_user(user_data)
     
@@ -100,7 +103,8 @@ async def test_authenticate_user():
     )
     
     # First delete the user if it exists
-    await database.users.delete_many({"email": email})
+    users_collection = await get_users_collection()
+    await users_collection.delete_many({"email": email})
     
     created_user = await user_service.create_user(user_data)
     
@@ -132,7 +136,8 @@ async def test_update_user():
     )
     
     # First delete the user if it exists
-    await database.users.delete_many({"email": email})
+    users_collection = await get_users_collection()
+    await users_collection.delete_many({"email": email})
     
     created_user = await user_service.create_user(user_data)
     
