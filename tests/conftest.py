@@ -9,7 +9,7 @@ import os
 
 from app.main import app
 from app.core.config import settings
-from app.db.mongodb import database, get_collection
+from app.db.mongodb import get_database, get_collection
 from app.services import user_service
 from app.models.user import UserCreate
 
@@ -40,6 +40,8 @@ async def setup_test_db():
     """
     Create test database and collections, and clean up after tests.
     """
+    from app.db.mongodb import client, database, products_collection, categories_collection, users_collection
+    
     # Use a test database with a different name
     test_db_name = "ecommerce_test"
     
@@ -59,23 +61,22 @@ async def setup_test_db():
                 base_url = settings.MONGODB_URL.rsplit('/', 1)[0]
             test_mongodb_url = f"{base_url}/{test_db_name}"
         
+        # Get current event loop
+        loop = asyncio.get_event_loop()
+        
         # Connect to test database with increased timeout
-        client = AsyncIOMotorClient(
+        test_client = AsyncIOMotorClient(
             test_mongodb_url,
+            io_loop=loop,
             serverSelectionTimeoutMS=5000,
             connectTimeoutMS=5000
         )
+        
         # Force a connection to verify it works
-        await client.admin.command('ping')
+        await test_client.admin.command('ping')
         
-        # Get database
-        test_db = client[test_db_name]
-        
-        # Save original database
-        original_database = database
-        
-        # Replace database with test database
-        globals()["database"] = test_db
+        # Get test database
+        test_db = test_client[test_db_name]
         
         # Create collections if they don't exist
         collections = await test_db.list_collection_names()
@@ -86,14 +87,66 @@ async def setup_test_db():
         if "categories" not in collections:
             await test_db.create_collection("categories")
         
+        # Save original values
+        original_client = client
+        original_database = database
+        original_products = products_collection
+        original_categories = categories_collection
+        original_users = users_collection
+        
+        # Replace with test values
+        from app.db.mongodb import client, database, products_collection, categories_collection, users_collection, get_client, get_database, get_products_collection, get_categories_collection, get_users_collection
+        
+        # Monkey patch the get functions to return test values during tests
+        async def get_test_client():
+            return test_client
+            
+        async def get_test_database():
+            return test_db
+            
+        async def get_test_products_collection():
+            return test_db.products
+            
+        async def get_test_categories_collection():
+            return test_db.categories
+            
+        async def get_test_users_collection():
+            return test_db.users
+        
+        # Patch the module
+        import app.db.mongodb
+        app.db.mongodb.get_client = get_test_client
+        app.db.mongodb.get_database = get_test_database
+        app.db.mongodb.get_products_collection = get_test_products_collection
+        app.db.mongodb.get_categories_collection = get_test_categories_collection
+        app.db.mongodb.get_users_collection = get_test_users_collection
+        
+        # Set global variables
+        app.db.mongodb.client = test_client
+        app.db.mongodb.database = test_db
+        app.db.mongodb.products_collection = test_db.products
+        app.db.mongodb.categories_collection = test_db.categories
+        app.db.mongodb.users_collection = test_db.users
+        
         yield
         
         # Clean up: drop test database
-        await client.drop_database(test_db_name)
+        await test_client.drop_database(test_db_name)
         
-        # Restore original database
-        globals()["database"] = original_database
-    
+        # Restore original values
+        app.db.mongodb.client = original_client
+        app.db.mongodb.database = original_database
+        app.db.mongodb.products_collection = original_products
+        app.db.mongodb.categories_collection = original_categories
+        app.db.mongodb.users_collection = original_users
+        
+        # Restore original functions
+        app.db.mongodb.get_client = get_client
+        app.db.mongodb.get_database = get_database
+        app.db.mongodb.get_products_collection = get_products_collection
+        app.db.mongodb.get_categories_collection = get_categories_collection
+        app.db.mongodb.get_users_collection = get_users_collection
+        
     except Exception as e:
         pytest.skip(f"MongoDB connection failed: {e}")
         yield None
@@ -113,7 +166,8 @@ async def sample_user():
     # Check if user already exists and delete it
     existing_user = await user_service.get_user_by_email(user_data.email)
     if existing_user:
-        await database.users.delete_one({"_id": existing_user.id})
+        users_collection = await app.db.mongodb.get_users_collection()
+        await users_collection.delete_one({"_id": existing_user.id})
     
     user = await user_service.create_user(user_data)
     return user
@@ -133,18 +187,20 @@ async def admin_user():
     # Check if user already exists and delete it
     existing_user = await user_service.get_user_by_email(user_data.email)
     if existing_user:
-        await database.users.delete_one({"_id": existing_user.id})
+        users_collection = await app.db.mongodb.get_users_collection()
+        await users_collection.delete_one({"_id": existing_user.id})
     
     user = await user_service.create_user(user_data)
     
     # Make user an admin
-    await database.users.update_one(
+    users_collection = await app.db.mongodb.get_users_collection()
+    await users_collection.update_one(
         {"_id": user.id},
         {"$set": {"is_admin": True}}
     )
     
     # Get updated user
-    user_dict = await database.users.find_one({"_id": user.id})
+    user_dict = await users_collection.find_one({"_id": user.id})
     return user_dict
 
 
