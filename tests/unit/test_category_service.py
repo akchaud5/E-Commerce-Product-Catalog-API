@@ -43,13 +43,22 @@ async def test_get_category_by_id():
     categories_collection = await get_categories_collection()
     await categories_collection.delete_many({"name": category_data.name})
     
+    # Create a category
     created_category = await category_service.create_category(category_data)
     
-    # Act
-    category = await category_service.get_category_by_id(str(created_category.id))
+    # Print debug info
+    print(f"Created category: {created_category}")
+    print(f"Created category id: {created_category.id}, type: {type(created_category.id)}")
+    
+    # Convert to string explicitly
+    category_id = str(created_category.id)
+    print(f"Category ID to search for: {category_id}")
+    
+    # Act - Get the category by ID
+    category = await category_service.get_category_by_id(category_id)
     
     # Assert
-    assert category is not None
+    assert category is not None, f"Could not find category with ID: {category_id}"
     assert category.name == category_data.name
     assert category.description == category_data.description
     

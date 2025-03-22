@@ -22,6 +22,7 @@ class CategoryInDB(CategoryBase):
     model_config = {
         "populate_by_name": True,
         "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str},
         "json_schema_extra": {
             "example": {
                 "_id": "60d21b4967d0d8992e610c85",
@@ -30,6 +31,10 @@ class CategoryInDB(CategoryBase):
             }
         }
     }
+    
+    def __str__(self) -> str:
+        """String representation of the category."""
+        return f"Category(id={self.id}, name={self.name})"
 
 class Category(CategoryBase):
     id: str
